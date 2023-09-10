@@ -38,11 +38,16 @@ jobs:
             TableEndpoint = @($(hostname), $IPAddress.IPAddress) | ForEach-Object { "https://${_}:8902/" }
             IPAddress = $IPAddress.IPAddress
         }
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: latest
+    - name: Install NPM Azure Cosmos dependency
+      run: npm install @azure/cosmos
     - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
       uses: actions/github-script@v6
       with:
         script: | # This is the default connection string for the Azure Cosmos DB Emulator
-          npm install @azure/cosmos
           const cosmosClient = new CosmosClient("AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==");
           const sampleSP = require('StoredProcedures/SampleStoredProcedure.js')
           const { database } = await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' })
