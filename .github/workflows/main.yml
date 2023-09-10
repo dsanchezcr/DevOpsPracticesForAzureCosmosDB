@@ -48,22 +48,29 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: | # This is the default connection string for the Azure Cosmos DB Emulator
-          const cosmosClient = new CosmosClient("AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==");
-          const sampleSP = require('StoredProcedures/SampleStoredProcedure.js')
-          const { database } = await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' })
-          const { container } = await database.containers.createIfNotExists({ id: 'SampleContainer' })
-          const { resource: storedProcedure } = await container.storedProcedures.create({ id: 'SampleStoredProcedure', body: sampleSP })
-          const { resource: result } = await container.storedProcedures.storedProcedure('SampleStoredProcedure').execute()
-          console.log(result)
+          async function main() {
+            const { CosmosClient } = require("@azure/cosmos");
+            const endpoint = "https://localhost:8081";
+            const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
+            const client = new CosmosClient({ endpoint, key });
+            const sampleSP = require('./StoredProcedures/sampleStoredProcedure.js')
+            const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' })
+            const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' })
+            const { resource: storedProcedure } =  await container.storedProcedures.create({ id: 'SampleStoredProcedure', body: sampleSP })
+            const { resource: result } = await container.storedProcedures.storedProcedure('SampleStoredProcedure').execute()
+            console.log(result)
+          }
 
     - name: Create and test Trigger
       uses: actions/github-script@v6
       with:
         script: |
-          const sampleT = require('Triggers/SampleTrigger.js')
-          const { resource: trigger } = await container.triggers.create({ id: 'SampleTrigger', body: sampleT, triggerOperation: 'All', triggerType: 'Pre' })
-          const { resource: result } = await container.items.create({ id: '1', name: 'Sample Item' })
-          console.log(result)
+          async function main() {
+            const sampleT = require('./Triggers/SampleTrigger.js')
+            const { resource: trigger } = await container.triggers.create({ id: 'SampleTrigger', body: sampleT, triggerOperation: 'All', triggerType: 'Pre' })
+            const { resource: result } = await container.items.create({ id: '1', name: 'Sample Item' })
+            console.log(result)
+          }
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
