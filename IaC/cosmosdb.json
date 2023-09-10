@@ -1,0 +1,94 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "cosmosAccountName": {
+        "type": "string"
+    },
+    "location": {
+        "type": "string"
+    },
+    "cosmosFreeTier": {
+      "type": "bool"
+    },
+    "webAppName": {
+      "type": "string"
+    },
+    "webAppTier": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "cosmosAccountName": "[concat(parameters('cosmosAccountName'),uniqueString(resourceGroup().id))]",
+    "webAppName": "[concat(parameters('webAppName'),uniqueString(resourceGroup().id))]",
+    "servicePlanName": "[concat(parameters('webAppName'),uniqueString(resourceGroup().id),'-service-plan')]",
+    "locations": [
+      {
+        "locationName": "[parameters('location')]"
+      }
+    ] 
+  },
+  "resources": [
+  // This is a simplified version of the template with the minimum required properties to create a Cosmos DB account. To learn more about the Azure Cosmos DB template, see https://learn.microsoft.com/azure/cosmos-db/nosql/quickstart-template-json
+    {
+        "type": "Microsoft.DocumentDB/databaseAccounts",
+        "apiVersion": "2022-05-15",
+        "kind": "GlobalDocumentDB",
+        "name": "[variables('cosmosAccountName')]",
+        "location": "[parameters('location')]",
+        "properties": {
+            "databaseAccountOfferType": "Standard",
+            "locations": "[variables('locations')]",
+            "enableFreeTier": "[parameters('cosmosFreeTier')]"
+        }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-02-01",
+      "name": "[variables('servicePlanName')]",
+      "location": "[parameters('location')]",
+      "sku": { "name": "[parameters('webAppTier')]" },
+      "properties": {
+        "name": "[variables('servicePlanName')]"
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2021-02-01",
+      "name": "[variables('webAppName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('servicePlanName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('servicePlanName'))]"
+      }  
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2020-12-01",
+      "name": "[format('{0}/{1}', variables('webAppName'), 'connectionstrings')]",
+      "properties": {
+        "DefaultConnection": {
+          "value": "[concat('AccountEndpoint=', reference(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName'))).documentEndpoint, ';AccountKey=', listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2022-05-15').primaryMasterKey, ';')]",
+          "type": "Custom"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName'))]",
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    }   
+  ],
+  "outputs": 
+  {
+    "cosmosDBendpoint": {
+      "type": "string",
+      "value": "[concat('https://', variables('cosmosAccountName'),'.documents.azure.com:443')]"
+    },
+    "webAppName": {
+      "type": "string",
+      "value": "variables('webAppName')"
+    }
+  }
+}

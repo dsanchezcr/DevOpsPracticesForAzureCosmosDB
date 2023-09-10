@@ -1,0 +1,217 @@
+name: 'DevOps Practices for Azure Cosmos DB - GitHub Actions Workflow'
+on:
+    workflow_dispatch:
+    push:
+        branches:
+        - main
+    pull_request:
+        branches:
+        - main
+
+jobs:
+  Development:
+    name: 'Deploy and Testing in Development'
+    runs-on: windows-latest # Azure Cosmos DB Emulator only supports Windows, although you can run it in a Docker container. https://learn.microsoft.com/azure/cosmos-db/local-emulator#run-on-linux-macos
+    environment: Development
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Initialize Azure Cosmos DB Emulator
+      shell: pwsh
+      run: | # Code from https://learn.microsoft.com/azure/cosmos-db/tutorial-setup-ci-cd
+        dir "C:\Program Files\Azure Cosmos DB Emulator\"      
+        Import-Module "$env:ProgramFiles\Azure Cosmos DB Emulator\PSModules\Microsoft.Azure.CosmosDB.Emulator"      
+        $startEmulatorCmd = "Start-CosmosDbEmulator -NoFirewall -NoUI"
+        Write-Host $startEmulatorCmd
+        Invoke-Expression -Command $startEmulatorCmd
+    
+        $Emulator = Get-Item "$env:ProgramFiles\Azure Cosmos DB Emulator\Microsoft.Azure.Cosmos.Emulator.exe"
+        $IPAddress = Get-NetIPAddress -AddressFamily IPV4 -AddressState Preferred -PrefixOrigin Manual | Select-Object IPAddress
+        
+        New-Object PSObject @{
+            Emulator = $Emulator.BaseName
+            Version = $Emulator.VersionInfo.ProductVersion
+            Endpoint = @($(hostname), $IPAddress.IPAddress) | ForEach-Object { "https://${_}:8081/" }
+            MongoDBEndpoint = @($(hostname), $IPAddress.IPAddress) | ForEach-Object { "mongodb://${_}:10255/" }
+            CassandraEndpoint = @($(hostname), $IPAddress.IPAddress) | ForEach-Object { "tcp://${_}:10350/" }
+            GremlinEndpoint = @($(hostname), $IPAddress.IPAddress) | ForEach-Object { "http://${_}:8901/" }
+            TableEndpoint = @($(hostname), $IPAddress.IPAddress) | ForEach-Object { "https://${_}:8902/" }
+            IPAddress = $IPAddress.IPAddress
+        }
+    - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
+      uses: actions/github-script@v6
+      with:
+        script: | # This is the default connection string for the Azure Cosmos DB Emulator
+          npm install @azure/cosmos
+          $env:COSMOS_CONNECTION_STRING="AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+          const cosmosClient = new CosmosClient(process.env.COSMOS_CONNECTION_STRING);
+          const sampleSP = require('StoredProcedures/SampleStoredProcedure.js')
+          const { database } = await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' })
+          const { container } = await database.containers.createIfNotExists({ id: 'SampleContainer' })
+          const { resource: storedProcedure } = await container.storedProcedures.create({ id: 'SampleStoredProcedure', body: sampleSP })
+          const { resource: result } = await container.storedProcedures.storedProcedure('SampleStoredProcedure').execute()
+          console.log(result)
+
+    - name: Create and test Trigger
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const sampleT = require('Triggers/SampleTrigger.js')
+          const { resource: trigger } = await container.triggers.create({ id: 'SampleTrigger', body: sampleT, triggerOperation: 'All', triggerType: 'Pre' })
+          const { resource: result } = await container.items.create({ id: '1', name: 'Sample Item' })
+          console.log(result)
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install dependencies
+      run: |
+        pushd ./SampleApp
+        dotnet restore 
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --no-restore --verbosity normal
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: dotnet-results
+        path: TestResults
+      # Use always() to always run this step to publish test results when there are test failures
+      if: ${{ always() }}
+
+    - name: Publish
+      run: dotnet publish --configuration Release --no-build --no-restore --output ./publish
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: SampleApp
+        path: publish
+
+  QA:
+    name: 'Deploy and Testing in QA'
+    runs-on: ubuntu-latest
+    environment: QA
+    needs: Development
+    steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - uses: azure/login@v1
+          with:
+            creds: ${{ secrets.AZURE_CREDENTIALS }} # Generated with the following Azure CLI command: az ad sp create-for-rbac --name "myApp" --role owner --scopes /subscriptions/{subscription-id} --json-auth
+
+        - name: Provisioning Azure Cosmos DB resource with ARM
+          id: arm_deployment
+          uses: azure/arm-deploy@v1
+          with:
+            resourceGroupName: azurecosmosdb-QA-rg
+            template: IaC/cosmosdb.json
+            parameters: IaC/cosmosdb.QA-parameters.json
+            deploymentMode: 'Complete'
+
+        - name: Create and test Stored Procedure with Azure Cosmos DB
+          uses: actions/github-script@v6
+          with:
+            script: | 
+              npm install @azure/cosmos
+              npm install @azure/identity
+              const { DefaultAzureCredential } = require("@azure/identity");
+              const credential = new DefaultAzureCredential();
+              const cosmosClient = new CosmosClient({ 
+                  ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
+                  aadCredentials: credential
+              });
+              const sampleSP = require('StoredProcedures/SampleStoredProcedure.js')
+              const { database } = await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' })
+              const { container } = await database.containers.createIfNotExists({ id: 'SampleContainer' })
+              const { resource: storedProcedure } = await container.storedProcedures.create({ id: 'SampleStoredProcedure', body: sampleSP })
+              const { resource: result } = await container.storedProcedures.storedProcedure('SampleStoredProcedure').execute()
+              console.log(result)
+    
+        - name: Create and test Trigger
+          uses: actions/github-script@v6
+          with:
+            script: |
+              const sampleT = require('Triggers/SampleTrigger.js')
+              const { resource: trigger } = await container.triggers.create({ id: 'SampleTrigger', body: sampleT, triggerOperation: 'All', triggerType: 'Pre' })
+              const { resource: result } = await container.items.create({ id: '1', name: 'Sample Item' })
+              console.log(result)
+
+        - name: Download a single artifact
+          uses: actions/download-artifact@v3
+          with:
+            name: SampleApp
+            path: SampleApp
+
+        - name: Deploy to Azure Web App
+          uses: azure/webapps-deploy@v2
+          with:
+            app-name: ${{ steps.arm_deployment.outputs.webappname }}
+            package: SampleApp
+
+  Production:
+    name: 'Deployment in Production'
+    runs-on: ubuntu-latest
+    environment: Production
+    needs: QA
+    steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - uses: azure/login@v1
+          with:
+            creds: ${{ secrets.AZURE_CREDENTIALS }} # For production, it is recommended to use a Service Principal with the least privileges possible that only has access to the production environment.
+
+        - name: Provisioning Azure Cosmos DB resource with ARM
+          id: arm_deployment
+          uses: azure/arm-deploy@v1
+          with:
+            resourceGroupName: azurecosmosdb-Production-rg
+            template: IaC/cosmosdb.json
+            parameters: IaC/cosmosdb.Prod-parameters.json
+            deploymentMode: 'Incremental'
+            
+        - name: Create Stored Procedure in Azure Cosmos DB for Production
+          uses: actions/github-script@v6
+          with:
+            script: | 
+              npm install @azure/cosmos
+              npm install @azure/identity
+              const { DefaultAzureCredential } = require("@azure/identity");
+              const credential = new DefaultAzureCredential();
+              const cosmosClient = new CosmosClient({ 
+                  ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
+                  aadCredentials: credential
+              });
+              const sampleSP = require('StoredProcedures/SampleStoredProcedure.js')
+              const { database } = await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' })
+              const { container } = await database.containers.createIfNotExists({ id: 'SampleContainer' })
+              const { resource: storedProcedure } = await container.storedProcedures.create({ id: 'SampleStoredProcedure', body: sampleSP })
+              const { resource: result } = await container.storedProcedures.storedProcedure('SampleStoredProcedure').execute()
+              console.log(result)
+      
+        - name: Create Trigger in Azure Cosmos DB for Production
+          uses: actions/github-script@v6
+          with:
+            script: |
+              const sampleT = require('Triggers/SampleTrigger.js')
+              const { resource: trigger } = await container.triggers.create({ id: 'SampleTrigger', body: sampleT, triggerOperation: 'All', triggerType: 'Pre' })
+            
+        - name: Download a single artifact
+          uses: actions/download-artifact@v3
+          with:
+            name: SampleApp
+            path: SampleApp
+
+        - name: Deploy to Azure Web App
+          uses: azure/webapps-deploy@v2
+          with:
+            app-name: ${{ steps.arm_deployment.outputs.webappname }}
+            package: SampleApp
