@@ -120,9 +120,7 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: .NET Restore
-      run: |
-        pushd ./SampleApp
-        dotnet restore 
+      run: dotnet restore SampleApp/SampleApp.sln
 
     - name: .NET Build
       run: dotnet build SampleApp/SampleApp.sln --configuration Release --no-restore
