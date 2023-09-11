@@ -82,7 +82,7 @@ jobs:
                 const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
                 const client = new CosmosClient({ endpoint, key });    
                 const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
+                const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
                 const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
                 try {
                     await container.scripts.storedProcedures.create(sampleStoredProcedure)              
@@ -114,7 +114,7 @@ jobs:
                 const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
                 const client = new CosmosClient({ endpoint, key });    
                 const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
+                const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
                 try {
                     await container.scripts.triggers.create(sampleTrigger)              
@@ -177,14 +177,14 @@ jobs:
         - name: Create and test Stored Procedure in Azure Cosmos DB
           uses: actions/github-script@v6
           with:
-            script: |
+            script: | # The Cosmos DB Key never should be accesed as plain text. It is only for demo purposes.
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
                   const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                  const key = "${{ steps.arm_deployment.outputs.cosmosDBkey }}";
+                  const key = "::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}";
                   const client = new CosmosClient({ endpoint, key });
                   const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                  const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
+                  const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
                   const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
                   try {
                       await container.scripts.storedProcedures.create(sampleStoredProcedure)              
@@ -208,14 +208,14 @@ jobs:
         - name: Create and test Trigger in Azure Cosmos DB
           uses: actions/github-script@v6
           with:
-            script: |
+            script: | # The Cosmos DB Key never should be accesed as plain text. It is only for demo purposes.
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
                 const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                const key = "${{ steps.arm_deployment.outputs.cosmosDBkey }}";
+                const key = "::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}";
                 const client = new CosmosClient({ endpoint, key });      
                 const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
+                const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
                 try {
                     await container.scripts.triggers.create(sampleTrigger)              
@@ -290,14 +290,14 @@ jobs:
         - name: Create and test Stored Procedure in Azure Cosmos DB
           uses: actions/github-script@v6
           with:
-            script: |
+            script: | # The Cosmos DB Key never should be accesed as plain text. It is only for demo purposes.
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
                   const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                  const key = "${{ steps.arm_deployment.outputs.cosmosDBkey }}";
+                  const key = "::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}";
                   const client = new CosmosClient({ endpoint, key });       
                   const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                  const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
+                  const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
                   const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
                   try {
                       await container.scripts.storedProcedures.create(sampleStoredProcedure)              
@@ -317,14 +317,14 @@ jobs:
         - name: Create and test Trigger in Azure Cosmos DB
           uses: actions/github-script@v6
           with:
-            script: |
+            script: | # The Cosmos DB Key never should be accesed as plain text. It is only for demo purposes.
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
                 const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                const key = "${{ steps.arm_deployment.outputs.cosmosDBkey }}";
+                const key = "::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}";
                 const client = new CosmosClient({ endpoint, key });      
                 const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
+                const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
                 try {
                     await container.scripts.triggers.create(sampleTrigger)              
