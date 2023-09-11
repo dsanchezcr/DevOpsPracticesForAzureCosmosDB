@@ -144,7 +144,7 @@ jobs:
     name: 'Quality Assurance'
     runs-on: ubuntu-latest
     environment: QA
-    # needs: [Build, Testing]
+    needs: [Build, Testing]
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
