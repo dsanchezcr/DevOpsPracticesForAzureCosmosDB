@@ -86,10 +86,9 @@
       "type": "string",
       "value": "[concat('https://', variables('cosmosAccountName'),'.documents.azure.com:443')]"
     },
-    // The cosmos db key should never be exposed in a real world scenario. This is just for demo purposes.
-    "cosmosDBkey": {
+    "cosmosDBName": {
       "type": "string",
-      "value": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2022-05-15').primaryMasterKey]"
+      "value": "[variables('cosmosAccountName')]"
     },
     "webAppName": {
       "type": "string",

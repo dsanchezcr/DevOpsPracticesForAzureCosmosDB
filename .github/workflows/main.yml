@@ -1,4 +1,4 @@
-name: 'DevOps Practices for Azure Cosmos DB - GitHub Actions Workflow'
+name: 'DevOps Practices for Azure Cosmos DB'
 on:
     workflow_dispatch:
     push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   Build:
-    name: 'Build Web App'
+    name: 'Build .NET Web App'
     runs-on: ubuntu-latest
     steps:
       - name: Repository checkout
@@ -37,7 +37,7 @@ jobs:
           path: publish
 
   Testing:
-    name: 'Testing'
+    name: 'Testing with Cosmos DB Emulator'
     runs-on: windows-latest # Azure Cosmos DB Emulator only supports Windows, although you can run it in a Docker container. https://learn.microsoft.com/azure/cosmos-db/local-emulator#run-on-linux-macos
     steps:
     - name: Repository checkout
@@ -69,79 +69,19 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: latest
-    - name: Install NPM Azure Cosmos dependency
-      run: npm install @azure/cosmos
-    - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
-      uses: actions/github-script@v6
-      with:
-        script: | # This is the default connection string for the Azure Cosmos DB Emulator and TLS Reject is disabled for the emulator self-certificate.
-            process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-            async function createSP() {       
-                const { CosmosClient } = require("@azure/cosmos");
-                const endpoint = "https://localhost:8081";
-                const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
-                const client = new CosmosClient({ endpoint, key });    
-                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
-                const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
-                try {
-                    await container.scripts.storedProcedures.create(sampleStoredProcedure)              
-                } catch (e) {
-                    if (e.code === 409) {
-                        console.log('Stored procedure already exists replacing it with new version.')
-                        await container.scripts.storedProcedure(sampleStoredProcedure.id).replace(sampleStoredProcedure) 
-                    } else {
-                        throw(e)
-                    }
-                }
-                finally{
-                    const { resource: results } = await container.scripts.storedProcedure(sampleStoredProcedure.id).execute();
-                    console.log(results);  
-                }
-            }
-            createSP().catch(error => {
-              console.error("An error occurred: ", error);
-            });
 
-    - name: Create and test Trigger
-      uses: actions/github-script@v6
-      with:
-        script: | # This is the default connection string for the Azure Cosmos DB Emulator and TLS Reject is disabled for the emulator self-certificate.
-            process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-            async function createTrigger() {
-                const { CosmosClient } = require("@azure/cosmos");
-                const endpoint = "https://localhost:8081";
-                const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
-                const client = new CosmosClient({ endpoint, key });    
-                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
-                const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
-                try {
-                    await container.scripts.triggers.create(sampleTrigger)              
-                } catch (e) {
-                    if (e.code === 409) {
-                        console.log('Trigger already exists replacing it with new version.')
-                        await container.scripts.trigger(sampleTrigger.id).replace(sampleTrigger) 
-                    } else {
-                        throw(e)
-                    }
-                }
-                finally {
-                    const newItem = {
-                        id: Math.floor(Math.random() * 10000).toString(),
-                        name: 'Sample Item'
-                    };
-                    const options = { preTriggerInclude: ['SampleTrigger'] };
-                    const { resource: trigger_result } = await container.items.create(newItem, options)
-                    console.log(trigger_result) 
-                }    
-            }
-            createTrigger().catch(error => {
-                console.error("An error occurred: ", error);
-            });
+    - name: Install Azure Cosmos dependency 
+      run: npm install @azure/cosmos
+    
+    # The following steps are optional and are only used to demonstrate how to create and test Stored Procedures and Triggers with the Azure Cosmos DB Emulator.
+    - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
+      run: node Scripts/createSP.js https://localhost:8081 C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw== SampleDatabase WebAppContext StoredProcedures/SampleStoredProcedure.js 1
+
+    - name: Create and test Trigger with Azure Cosmos DB Emulator
+      run: node Scripts/createTrigger.js https://localhost:8081 C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw== SampleDatabase WebAppContext Triggers/SampleTrigger.js 1
 
   QA:
-    name: 'Quality Assurance'
+    name: 'Quality Assurance in Azure Test Environment'
     runs-on: ubuntu-latest
     environment: QA
     needs: [Build, Testing]
@@ -158,91 +98,35 @@ jobs:
             az group create --name ${{ vars.RESOURCEGROUP }} --location eastus
 
         - name: Provisioning Azure resources
-          id: arm_deployment
+          id: arm_deploy
           uses: azure/arm-deploy@v1
           with:
             resourceGroupName: ${{ vars.RESOURCEGROUP }}
             template: IaC/cosmosdb.json
             parameters: IaC/cosmosdb.QA-parameters.json
             deploymentMode: 'Complete'
-          env: 
-            cosmoskey: ::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}
+
+        - name: Get CosmosDB Key
+          id: get_cosmos_key
+          run: | # Mask the key in the logs
+            primary_key=$(az cosmosdb keys list --name ${{ steps.arm_deploy.outputs.cosmosDBName }} --resource-group ${{ vars.RESOURCEGROUP }} --query primaryMasterKey --output tsv)
+            echo "::add-mask::$primary_key" 
+            echo "cosmosDBKey=$primary_key" >> $GITHUB_ENV
 
         - name: Setup Node.js
           uses: actions/setup-node@v3
           with:
             node-version: latest
 
-        - name: Install NPM Azure Cosmos and Azure Identity dependencies
+        - name: Install Azure Cosmos dependency 
           run: npm install @azure/cosmos
-
-        - name: Create and test Stored Procedure in Azure Cosmos DB
-          uses: actions/github-script@v6
-          with:
-            script: | # The Cosmos DB Key never should be accesed as plain text. It is only for demo purposes.
-              async function createSP() {       
-                  const { CosmosClient } = require("@azure/cosmos");
-                  const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                  const key = "${{ env.cosmoskey }} ";
-                  const client = new CosmosClient({ endpoint, key });
-                  const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                  const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
-                  const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
-                  try {
-                      await container.scripts.storedProcedures.create(sampleStoredProcedure)              
-                  } catch (e) {
-                      if (e.code === 409) {
-                          console.log('Stored procedure already exists replacing it with new version.')
-                          await container.scripts.storedProcedure(sampleStoredProcedure.id).replace(sampleStoredProcedure) 
-                      } else {
-                          throw(e)
-                      }
-                  }
-                  finally{
-                      const { resource: results } = await container.scripts.storedProcedure(sampleStoredProcedure.id).execute();
-                      console.log(results);  
-                  }
-              }
-              createSP().catch(error => {
-                console.error("An error occurred: ", error);
-              });
     
-        - name: Create and test Trigger in Azure Cosmos DB
-          uses: actions/github-script@v6
-          with:
-            script: | # The Cosmos DB Key never should be accesed as plain text. It is only for demo purposes.
-              async function createTrigger() {
-                const { CosmosClient } = require("@azure/cosmos");
-                const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                const key = "${{ env.cosmoskey }}";
-                const client = new CosmosClient({ endpoint, key });      
-                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
-                const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
-                try {
-                    await container.scripts.triggers.create(sampleTrigger)              
-                } catch (e) {
-                    if (e.code === 409) {
-                        console.log('Trigger already exists replacing it with new version.')
-                        await container.scripts.trigger(sampleTrigger.id).replace(sampleTrigger) 
-                    } else {
-                        throw(e)
-                    }
-                }
-                finally {
-                    const newItem = {
-                        id: Math.floor(Math.random() * 10000).toString(),
-                        name: 'Sample Item'
-                    };
-                    const options = { preTriggerInclude: ['SampleTrigger'] };
-                    const { resource: trigger_result } = await container.items.create(newItem, options)
-                    console.log(trigger_result) 
-                }    
-              }
-              createTrigger().catch(error => {
-                  console.error("An error occurred: ", error);
-              });
-
+        - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
+          run: node Scripts/createSP.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext StoredProcedures/SampleStoredProcedure.js 1
+      
+        - name: Create and test Trigger with Azure Cosmos DB Emulator
+          run: node Scripts/createTrigger.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext Triggers/SampleTrigger.js 1
+              
         - name: Download web app artifact
           uses: actions/download-artifact@v3
           with:
@@ -252,7 +136,7 @@ jobs:
         - name: Deploy web app to Azure Web App
           uses: azure/webapps-deploy@v2
           with:
-            app-name: ${{ steps.arm_deployment.outputs.webappname }}
+            app-name: ${{ steps.arm_deploy.outputs.webAppName }}
             package: SampleApp
 
   Production:
@@ -273,78 +157,40 @@ jobs:
             az group create --name ${{ vars.RESOURCEGROUP }} --location eastus
 
         - name: Provisioning Azure Cosmos DB resource with ARM
-          id: arm_deployment
+          id: arm_deploy
           uses: azure/arm-deploy@v1
           with:
             resourceGroupName: ${{ vars.RESOURCEGROUP }}
             template: IaC/cosmosdb.json
             parameters: IaC/cosmosdb.Prod-parameters.json
             deploymentMode: 'Incremental'
-          env: 
-            cosmoskey: ::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}
             
         - name: Setup Node.js
           uses: actions/setup-node@v3
           with:
             node-version: latest
-
-        - name: Install NPM Azure Cosmos and Azure Identity dependencies
-          run: npm install @azure/cosmos
-  
-        - name: Create and test Stored Procedure in Azure Cosmos DB
-          uses: actions/github-script@v6
-          with:
-            script: | # The Cosmos DB Key never should be accesed as plain text. It is only for demo purposes.
-              async function createSP() {       
-                  const { CosmosClient } = require("@azure/cosmos");
-                  const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                  const key = "${{ env.cosmoskey }}";
-                  const client = new CosmosClient({ endpoint, key });       
-                  const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                  const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
-                  const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
-                  try {
-                      await container.scripts.storedProcedures.create(sampleStoredProcedure)              
-                  } catch (e) {
-                      if (e.code === 409) {
-                          console.log('Stored procedure already exists replacing it with new version.')
-                          await container.scripts.storedProcedure(sampleStoredProcedure.id).replace(sampleStoredProcedure) 
-                      } else {
-                          throw(e)
-                      }
-                  }
-              }
-              createSP().catch(error => {
-                console.error("An error occurred: ", error);
-              });
       
-        - name: Create and test Trigger in Azure Cosmos DB
-          uses: actions/github-script@v6
+        - name: Get CosmosDB Key
+          id: get_cosmos_key
+          run: | # Mask the key in the logs
+            primary_key=$(az cosmosdb keys list --name ${{ steps.arm_deploy.outputs.cosmosDBName }} --resource-group ${{ vars.RESOURCEGROUP }} --query primaryMasterKey --output tsv)
+            echo "::add-mask::$primary_key"
+            echo "cosmosDBKey=$primary_key" >> $GITHUB_ENV
+  
+        - name: Setup Node.js
+          uses: actions/setup-node@v3
           with:
-            script: | # The Cosmos DB Key never should be accesed as plain text. It is only for demo purposes.
-              async function createTrigger() {
-                const { CosmosClient } = require("@azure/cosmos");
-                const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                const key = "${{ env.cosmoskey }}";
-                const client = new CosmosClient({ endpoint, key });
-                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
-                const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
-                const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
-                try {
-                    await container.scripts.triggers.create(sampleTrigger)              
-                } catch (e) {
-                    if (e.code === 409) {
-                        console.log('Trigger already exists replacing it with new version.')
-                        await container.scripts.trigger(sampleTrigger.id).replace(sampleTrigger) 
-                    } else {
-                        throw(e)
-                    }
-                }    
-              }
-              createTrigger().catch(error => {
-                  console.error("An error occurred: ", error);
-              });
-            
+            node-version: latest
+
+        - name: Install Azure Cosmos dependency 
+          run: npm install @azure/cosmos
+      
+        - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
+          run: node Scripts/createSP.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext StoredProcedures/SampleStoredProcedure.js 0
+      
+        - name: Create and test Trigger with Azure Cosmos DB Emulator
+          run: node Scripts/createTrigger.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext Triggers/SampleTrigger.js 0
+          
         - name: Download web app artifact
           uses: actions/download-artifact@v3
           with:
@@ -354,5 +200,5 @@ jobs:
         - name: Deploy web app to Azure Web App
           uses: azure/webapps-deploy@v2
           with:
-            app-name: ${{ steps.arm_deployment.outputs.webappname }}
+            app-name: ${{ steps.arm_deploy.outputs.WebAppName }}
             package: SampleApp
