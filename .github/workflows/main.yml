@@ -144,7 +144,7 @@ jobs:
     name: 'Quality Assurance'
     runs-on: ubuntu-latest
     environment: QA
-    # needs: [Build, Testing]
+    needs: [Build, Testing]
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
@@ -156,7 +156,6 @@ jobs:
         - name: Create Azure Resource Group
           run: | 
             az group create --name ${{ vars.RESOURCEGROUP }} --location eastus
-            az role assignment create --assignee ${{ secrets.SERVICEPRINCIPAL }} --role owner --scope "/subscriptions/${{ secrets.AZURESUBID }}/resourcegroups/${{ vars.RESOURCEGROUP }}"
 
         - name: Provisioning Azure resources
           id: arm_deployment
@@ -173,7 +172,7 @@ jobs:
             node-version: latest
 
         - name: Install NPM Azure Cosmos and Azure Identity dependencies
-          run: npm install @azure/cosmos @azure/identity
+          run: npm install @azure/cosmos
 
         - name: Create and test Stored Procedure in Azure Cosmos DB
           uses: actions/github-script@v6
@@ -181,11 +180,9 @@ jobs:
             script: |
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
-                  const { DefaultAzureCredential } = require("@azure/identity");
-                  const credential = new DefaultAzureCredential();
                   const cosmosClient = new CosmosClient({ 
                     endpoint: ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
-                    aadCredentials: credential
+                    key: ${{ steps.arm_deployment.outputs.cosmosDBkey }}
                   });    
                   const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
@@ -215,11 +212,9 @@ jobs:
             script: |
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
-                const { DefaultAzureCredential } = require("@azure/identity");
-                const credential = new DefaultAzureCredential();
                 const cosmosClient = new CosmosClient({ 
                   endpoint: ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
-                  aadCredentials: credential
+                  key: ${{ steps.arm_deployment.outputs.cosmosDBkey }}
                 });    
                 const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
@@ -276,7 +271,6 @@ jobs:
         - name: Create Azure Resource Group
           run: |
             az group create --name ${{ vars.RESOURCEGROUP }} --location eastus
-            az role assignment create --assignee ${{ secrets.SERVICEPRINCIPAL }} --role owner --scope "/subscriptions/${{ secrets.AZURESUBID }}/resourcegroups/${{ vars.RESOURCEGROUP }}"
 
         - name: Provisioning Azure Cosmos DB resource with ARM
           id: arm_deployment
@@ -293,7 +287,7 @@ jobs:
             node-version: latest
 
         - name: Install NPM Azure Cosmos and Azure Identity dependencies
-          run: npm install @azure/cosmos @azure/identity
+          run: npm install @azure/cosmos
   
         - name: Create and test Stored Procedure in Azure Cosmos DB
           uses: actions/github-script@v6
@@ -301,11 +295,9 @@ jobs:
             script: |
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
-                  const { DefaultAzureCredential } = require("@azure/identity");
-                  const credential = new DefaultAzureCredential();
                   const cosmosClient = new CosmosClient({ 
                     endpoint: ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
-                    aadCredentials: credential
+                    key: ${{ steps.arm_deployment.outputs.cosmosDBkey }}
                   });    
                   const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
@@ -331,11 +323,9 @@ jobs:
             script: |
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
-                const { DefaultAzureCredential } = require("@azure/identity");
-                const credential = new DefaultAzureCredential();
                 const cosmosClient = new CosmosClient({ 
                   endpoint: ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
-                  aadCredentials: credential
+                  key: ${{ steps.arm_deployment.outputs.cosmosDBkey }}
                 });    
                 const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
