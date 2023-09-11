@@ -183,7 +183,7 @@ jobs:
                   const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
                   const key = "${{ steps.arm_deployment.outputs.cosmosDBkey }}";
                   const client = new CosmosClient({ endpoint, key });
-                  const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
+                  const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                   const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
                   try {
@@ -214,7 +214,7 @@ jobs:
                 const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
                 const key = "${{ steps.arm_deployment.outputs.cosmosDBkey }}";
                 const client = new CosmosClient({ endpoint, key });      
-                const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
+                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
                 try {
@@ -296,7 +296,7 @@ jobs:
                   const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
                   const key = "${{ steps.arm_deployment.outputs.cosmosDBkey }}";
                   const client = new CosmosClient({ endpoint, key });       
-                  const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
+                  const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                   const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
                   try {
@@ -323,7 +323,7 @@ jobs:
                 const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
                 const key = "${{ steps.arm_deployment.outputs.cosmosDBkey }}";
                 const client = new CosmosClient({ endpoint, key });      
-                const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
+                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
                 try {
