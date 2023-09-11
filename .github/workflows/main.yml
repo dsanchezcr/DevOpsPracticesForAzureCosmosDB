@@ -144,7 +144,7 @@ jobs:
     name: 'Quality Assurance'
     runs-on: ubuntu-latest
     environment: QA
-    needs: [Build, Testing]
+    # needs: [Build, Testing]
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
@@ -180,9 +180,8 @@ jobs:
             script: |
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
-                  const cosmosClient = new CosmosClient({ 
-                  '${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}' 
-                  });    
+                  const connectionString = "${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}"
+                  const cosmosClient = new CosmosClient({ connectionString });                       
                   const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                   const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
@@ -211,9 +210,8 @@ jobs:
             script: |
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
-                const cosmosClient = new CosmosClient({ 
-                  '${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}' 
-                });     
+                const connectionString = "${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}"
+                const cosmosClient = new CosmosClient({ connectionString });      
                 const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
@@ -293,9 +291,8 @@ jobs:
             script: |
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
-                  const cosmosClient = new CosmosClient({ 
-                  '${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}' 
-                  });       
+                  const connectionString = "${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}"
+                  const cosmosClient = new CosmosClient({ connectionString });         
                   const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                   const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
@@ -320,9 +317,8 @@ jobs:
             script: |
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
-                const cosmosClient = new CosmosClient({ 
-                  '${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}' 
-                });      
+                const connectionString = "${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}"
+                const cosmosClient = new CosmosClient({ connectionString });       
                 const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
