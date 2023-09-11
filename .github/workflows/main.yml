@@ -154,13 +154,15 @@ jobs:
             creds: ${{ secrets.AZURE_CREDENTIALS }} # Generated with the following Azure CLI command: az ad sp create-for-rbac --name "myApp" --role owner --scopes /subscriptions/{subscription-id} --json-auth
 
         - name: Create Azure Resource Group
-          run: az group create --name azurecosmosdb-QA-rg --location eastus
+          run: | 
+            az group create --name ${{ env.qaResourceGroup }} --location eastus
+            az role assignment create --assignee ${{ secrets.servicePrincipal }} --role owner --resource-group ${{ env.qaResourceGroup }}
 
         - name: Provisioning Azure resources
           id: arm_deployment
           uses: azure/arm-deploy@v1
           with:
-            resourceGroupName: azurecosmosdb-QA-rg
+            resourceGroupName: ${{ env.qaResourceGroup }}
             template: IaC/cosmosdb.json
             parameters: IaC/cosmosdb.QA-parameters.json
             deploymentMode: 'Complete'
@@ -182,10 +184,10 @@ jobs:
                   const { DefaultAzureCredential } = require("@azure/identity");
                   const credential = new DefaultAzureCredential();
                   const cosmosClient = new CosmosClient({ 
-                    ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
+                    endpoint: ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
                     aadCredentials: credential
                   });    
-                  const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
+                  const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                   const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
                   try {
@@ -216,10 +218,10 @@ jobs:
                 const { DefaultAzureCredential } = require("@azure/identity");
                 const credential = new DefaultAzureCredential();
                 const cosmosClient = new CosmosClient({ 
-                  ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
+                  endpoint: ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
                   aadCredentials: credential
                 });    
-                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
+                const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
                 try {
@@ -272,13 +274,15 @@ jobs:
             creds: ${{ secrets.AZURE_CREDENTIALS }} # For production, it is recommended to use a Service Principal with the least privileges possible that only has access to the production environment.
 
         - name: Create Azure Resource Group
-          run: az group create --name azurecosmosdb-Production-rg --location eastus
+          run: |
+            az group create --name ${{ env.prodResourceGroup }} --location eastus
+            az role assignment create --assignee ${{ secrets.servicePrincipal }} --role owner --resource-group ${{ env.prodResourceGroup }}
 
         - name: Provisioning Azure Cosmos DB resource with ARM
           id: arm_deployment
           uses: azure/arm-deploy@v1
           with:
-            resourceGroupName: azurecosmosdb-Production-rg
+            resourceGroupName: ${{ env.prodResourceGroup }}
             template: IaC/cosmosdb.json
             parameters: IaC/cosmosdb.Prod-parameters.json
             deploymentMode: 'Incremental'
@@ -300,10 +304,10 @@ jobs:
                   const { DefaultAzureCredential } = require("@azure/identity");
                   const credential = new DefaultAzureCredential();
                   const cosmosClient = new CosmosClient({ 
-                    ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
+                    endpoint: ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
                     aadCredentials: credential
                   });    
-                  const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
+                  const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                   const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
                   try {
@@ -330,10 +334,10 @@ jobs:
                 const { DefaultAzureCredential } = require("@azure/identity");
                 const credential = new DefaultAzureCredential();
                 const cosmosClient = new CosmosClient({ 
-                  ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
+                  endpoint: ${{ steps.arm_deployment.outputs.cosmosDBendpoint }}, 
                   aadCredentials: credential
                 });    
-                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
+                const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
                 try {
