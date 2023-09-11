@@ -87,7 +87,7 @@
       "value": "[concat('https://', variables('cosmosAccountName'),'.documents.azure.com:443')]"
     },
     "cosmosDBkey": {
-      "type": "securestring",
+      "type": "string",
       "value": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2022-05-15').primaryMasterKey]"
     },
     "webAppName": {
