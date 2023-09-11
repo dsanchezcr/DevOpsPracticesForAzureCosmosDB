@@ -156,7 +156,7 @@ jobs:
         - name: Create Azure Resource Group
           run: | 
             az group create --name ${{ vars.RESOURCEGROUP }} --location eastus
-            az role assignment create --assignee ${{ secrets.SERVICEPRINCIPAL }} --role owner --scope "/subscriptions/${{ secrets.AZURESUBID }}/resourcegroups/${{ vars.RESOURCEGROUP }}
+            az role assignment create --assignee ${{ secrets.SERVICEPRINCIPAL }} --role owner --scope "/subscriptions/${{ secrets.AZURESUBID }}/resourcegroups/${{ vars.RESOURCEGROUP }}"
 
         - name: Provisioning Azure resources
           id: arm_deployment
@@ -276,7 +276,7 @@ jobs:
         - name: Create Azure Resource Group
           run: |
             az group create --name ${{ vars.RESOURCEGROUP }} --location eastus
-            az role assignment create --assignee ${{ secrets.SERVICEPRINCIPAL }} --role owner --scope "/subscriptions/${{ secrets.AZURESUBID }}/resourcegroups/${{ vars.RESOURCEGROUP }}
+            az role assignment create --assignee ${{ secrets.SERVICEPRINCIPAL }} --role owner --scope "/subscriptions/${{ secrets.AZURESUBID }}/resourcegroups/${{ vars.RESOURCEGROUP }}"
 
         - name: Provisioning Azure Cosmos DB resource with ARM
           id: arm_deployment
