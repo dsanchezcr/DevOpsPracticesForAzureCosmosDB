@@ -82,9 +82,13 @@
   ],
   "outputs": 
   {
-    "cosmosDBConnectionString": {
+    "cosmosDBendpoint": {
+      "type": "string",
+      "value": "[concat('https://', variables('cosmosAccountName'),'.documents.azure.com:443')]"
+    },
+    "cosmosDBkey": {
       "type": "securestring",
-      "value": "[concat('AccountEndpoint=', reference(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName'))).documentEndpoint, ';AccountKey=', listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2022-05-15').primaryMasterKey, ';')]"
+      "value": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2022-05-15').primaryMasterKey]"
     },
     "webAppName": {
       "type": "string",
