@@ -145,6 +145,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: QA
     needs: [Build, Testing]
+    env:
+       cosmoskey: ::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
@@ -181,7 +183,7 @@ jobs:
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
                   const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                  const key = "::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}";
+                  const key = "${{ env.cosmoskey }} ";
                   const client = new CosmosClient({ endpoint, key });
                   const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
@@ -212,7 +214,7 @@ jobs:
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
                 const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                const key = "::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}";
+                const key = "${{ env.cosmoskey }}";
                 const client = new CosmosClient({ endpoint, key });      
                 const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
@@ -258,6 +260,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: Production
     needs: QA
+    env:
+       cosmoskey: ::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
@@ -294,7 +298,7 @@ jobs:
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
                   const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                  const key = "::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}";
+                  const key = "${{ env.cosmoskey }}";
                   const client = new CosmosClient({ endpoint, key });       
                   const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
@@ -321,8 +325,8 @@ jobs:
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
                 const endpoint = "${{ steps.arm_deployment.outputs.cosmosDBendpoint }}";
-                const key = "::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}";
-                const client = new CosmosClient({ endpoint, key });      
+                const key = "${{ env.cosmoskey }}";
+                const client = new CosmosClient({ endpoint, key });
                 const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'WebAppContext' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
