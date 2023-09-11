@@ -145,8 +145,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: QA
     needs: [Build, Testing]
-    env:
-       cosmoskey: ::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
@@ -167,6 +165,8 @@ jobs:
             template: IaC/cosmosdb.json
             parameters: IaC/cosmosdb.QA-parameters.json
             deploymentMode: 'Complete'
+          env: 
+            cosmoskey: ::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}
 
         - name: Setup Node.js
           uses: actions/setup-node@v3
@@ -260,8 +260,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: Production
     needs: QA
-    env:
-       cosmoskey: ::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
@@ -282,6 +280,8 @@ jobs:
             template: IaC/cosmosdb.json
             parameters: IaC/cosmosdb.Prod-parameters.json
             deploymentMode: 'Incremental'
+          env: 
+            cosmoskey: ::add-mask::${{ steps.arm_deployment.outputs.cosmosDBkey }}
             
         - name: Setup Node.js
           uses: actions/setup-node@v3
