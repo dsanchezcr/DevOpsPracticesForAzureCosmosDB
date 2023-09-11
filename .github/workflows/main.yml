@@ -9,10 +9,33 @@ on:
         - main
 
 jobs:
-  Development:
-    name: 'Development, Build, and Testing'
+  Build:
+    name: 'Build Web App'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: .NET Restore
+        run: dotnet restore SampleApp/SampleApp.sln
+
+      - name: .NET Build
+        run: dotnet build SampleApp/SampleApp.sln --configuration Release --no-restore
+
+      - name: .NET Publish
+        run: dotnet publish SampleApp/SampleApp.sln --configuration Release --no-build --no-restore --output ./publish
+
+      - name: Upload web app artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: SampleApp
+          path: publish
+
+  Testing:
+    name: 'Testing'
     runs-on: windows-latest # Azure Cosmos DB Emulator only supports Windows, although you can run it in a Docker container. https://learn.microsoft.com/azure/cosmos-db/local-emulator#run-on-linux-macos
-    environment: Development
     steps:
     - name: Repository checkout
       uses: actions/checkout@v4
@@ -114,31 +137,11 @@ jobs:
                 console.error("An error occurred: ", error);
             });
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
-
-    - name: .NET Restore
-      run: dotnet restore SampleApp/SampleApp.sln
-
-    - name: .NET Build
-      run: dotnet build SampleApp/SampleApp.sln --configuration Release --no-restore
-
-    - name: .NET Publish
-      run: dotnet publish SampleApp/SampleApp.sln --configuration Release --no-build --no-restore --output ./publish
-
-    - name: Upload web app artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: SampleApp
-        path: publish
-
   QA:
     name: 'Quality Assurance'
     runs-on: ubuntu-latest
     environment: QA
-    needs: Development
+    needs: [Build, Testing]
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
@@ -146,6 +149,9 @@ jobs:
         - uses: azure/login@v1
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }} # Generated with the following Azure CLI command: az ad sp create-for-rbac --name "myApp" --role owner --scopes /subscriptions/{subscription-id} --json-auth
+
+        - name: Create Azure Resource Group
+          run: az group create --name azurecosmosdb-QA-rg --location eastus
 
         - name: Provisioning Azure resources
           id: arm_deployment
@@ -261,6 +267,9 @@ jobs:
         - uses: azure/login@v1
           with:
             creds: ${{ secrets.AZURE_CREDENTIALS }} # For production, it is recommended to use a Service Principal with the least privileges possible that only has access to the production environment.
+
+        - name: Create Azure Resource Group
+          run: az group create --name azurecosmosdb-Production-rg --location eastus
 
         - name: Provisioning Azure Cosmos DB resource with ARM
           id: arm_deployment
