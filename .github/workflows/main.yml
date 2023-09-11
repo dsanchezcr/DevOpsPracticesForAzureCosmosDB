@@ -19,7 +19,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '7.0.x'
 
       - name: .NET Restore
         run: dotnet restore SampleApp/WebApp.csproj
@@ -181,8 +181,7 @@ jobs:
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
                   const cosmosClient = new CosmosClient({ 
-                    endpoint: '${{ steps.arm_deployment.outputs.cosmosDBendpoint }}', 
-                    key: '${{ steps.arm_deployment.outputs.cosmosDBkey }}'
+                  '${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}' 
                   });    
                   const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
@@ -213,8 +212,7 @@ jobs:
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
                 const cosmosClient = new CosmosClient({ 
-                  endpoint: '${{ steps.arm_deployment.outputs.cosmosDBendpoint }}', 
-                  key: '${{ steps.arm_deployment.outputs.cosmosDBkey }}'
+                  '${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}' 
                 });     
                 const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
@@ -296,8 +294,7 @@ jobs:
               async function createSP() {       
                   const { CosmosClient } = require("@azure/cosmos");
                   const cosmosClient = new CosmosClient({ 
-                    endpoint: '${{ steps.arm_deployment.outputs.cosmosDBendpoint }}', 
-                    key: '${{ steps.arm_deployment.outputs.cosmosDBkey }}'
+                  '${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}' 
                   });       
                   const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                   const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
@@ -324,9 +321,8 @@ jobs:
               async function createTrigger() {
                 const { CosmosClient } = require("@azure/cosmos");
                 const cosmosClient = new CosmosClient({ 
-                  endpoint: '${{ steps.arm_deployment.outputs.cosmosDBendpoint }}', 
-                  key: '${{ steps.arm_deployment.outputs.cosmosDBkey }}'
-                });       
+                  '${{ steps.arm_deployment.outputs.cosmosDBConnectionString }}' 
+                });      
                 const { database } =  await cosmosClient.databases.createIfNotExists({ id: 'SampleDatabase' });
                 const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
                 const { sampleTrigger } = require('./Triggers/SampleTrigger.js')
