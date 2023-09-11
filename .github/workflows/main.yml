@@ -47,30 +47,71 @@ jobs:
     - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
       uses: actions/github-script@v6
       with:
-        script: | # This is the default connection string for the Azure Cosmos DB Emulator
-          async function main() {
-            const { CosmosClient } = require("@azure/cosmos");
-            const endpoint = "https://localhost:8081";
-            const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
-            const client = new CosmosClient({ endpoint, key });
-            const sampleSP = require('./StoredProcedures/sampleStoredProcedure.js')
-            const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' })
-            const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' })
-            const { resource: storedProcedure } =  await container.storedProcedures.create({ id: 'SampleStoredProcedure', body: sampleSP })
-            const { resource: result } = await container.storedProcedures.storedProcedure('SampleStoredProcedure').execute()
-            console.log(result)
-          }
+        script: | # This is the default connection string for the Azure Cosmos DB Emulator and TLS Reject is disabled for the emulator self-certificate.
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+            async function createSP() {       
+                const { CosmosClient } = require("@azure/cosmos");
+                const endpoint = "https://localhost:8081";
+                const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
+                const client = new CosmosClient({ endpoint, key });    
+                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
+                const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
+                const { sampleStoredProcedure } = require('./StoredProcedures/SampleStoredProcedure.js');    
+                try {
+                    await container.scripts.storedProcedures.create(sampleStoredProcedure)              
+                } catch (e) {
+                    if (e.code === 409) {
+                        console.log('Stored procedure already exists replacing it with new version.')
+                        await container.scripts.storedProcedure(sampleStoredProcedure.id).replace(sampleStoredProcedure) 
+                    } else {
+                        throw(e)
+                    }
+                }
+                finally{
+                    const { resource: results } = await container.scripts.storedProcedure(sampleStoredProcedure.id).execute();
+                    console.log(results);  
+                }
+            }
+            createSP().catch(error => {
+              console.error("An error occurred: ", error);
+            });
 
     - name: Create and test Trigger
       uses: actions/github-script@v6
       with:
-        script: |
-          async function main() {
-            const sampleT = require('./Triggers/SampleTrigger.js')
-            const { resource: trigger } = await container.triggers.create({ id: 'SampleTrigger', body: sampleT, triggerOperation: 'All', triggerType: 'Pre' })
-            const { resource: result } = await container.items.create({ id: '1', name: 'Sample Item' })
-            console.log(result)
-          }
+        script: | # This is the default connection string for the Azure Cosmos DB Emulator and TLS Reject is disabled for the emulator self-certificate.
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+            async function createTrigger() {
+                const { CosmosClient } = require("@azure/cosmos");
+                const endpoint = "https://localhost:8081";
+                const key = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
+                const client = new CosmosClient({ endpoint, key });    
+                const { database } =  await client.databases.createIfNotExists({ id: 'SampleDatabase' });
+                const { container } =  await database.containers.createIfNotExists({ id: 'SampleContainer' });
+                const { sampleTrigger } = require('./SampleTrigger.js')
+                try {
+                    await container.scripts.triggers.create(sampleTrigger)              
+                } catch (e) {
+                    if (e.code === 409) {
+                        console.log('Trigger already exists replacing it with new version.')
+                        await container.scripts.trigger(sampleTrigger.id).replace(sampleTrigger) 
+                    } else {
+                        throw(e)
+                    }
+                }
+                finally {
+                    const newItem = {
+                        id: Math.floor(Math.random() * 10000).toString(),
+                        name: 'Sample Item'
+                    };
+                    const options = { preTriggerInclude: ['SampleTrigger'] };
+                    const { resource: trigger_result } = await container.items.create(newItem, options)
+                    console.log(trigger_result) 
+                }    
+            }
+            createTrigger().catch(error => {
+                console.error("An error occurred: ", error);
+            });
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
@@ -83,10 +124,10 @@ jobs:
         dotnet restore 
 
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build SampleApp/SampleApp.sln --configuration Release --no-restore
 
     - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test SampleApp/SampleApp.sln --no-restore --verbosity normal
 
     - name: Upload test results
       uses: actions/upload-artifact@v3
@@ -97,7 +138,7 @@ jobs:
       if: ${{ always() }}
 
     - name: Publish
-      run: dotnet publish --configuration Release --no-build --no-restore --output ./publish
+      run: dotnet publish SampleApp/SampleApp.sln --configuration Release --no-build --no-restore --output ./publish
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3

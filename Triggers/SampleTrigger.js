@@ -1,16 +1,15 @@
-function validateDocument() {
-    var context = getContext();
-    var request = context.getRequest();
-    var documentToCreate = request.getBody();
-
-    // perform validation
-    if (documentToCreate.id === undefined) {
-        throw new Error('Document must have an id.');
-    }
-
-    if (documentToCreate.name === undefined) {
-        throw new Error('Document must have a name.');
-    }
-
-    // if validation passed, continue with creation
-}
+const sampleTrigger = {
+    id: 'SampleTrigger',
+    body: function SampleTrigger() {
+        const context = getContext();
+        const request = context.getRequest();
+        const document = request.getBody();
+  
+        document.timestamp = new Date().toISOString();
+        
+        request.setBody(document);
+      },
+    triggerOperation: 'All',
+    triggerType: 'Pre'
+};
+exports.sampleTrigger = sampleTrigger;
