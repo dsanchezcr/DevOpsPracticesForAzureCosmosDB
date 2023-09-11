@@ -155,14 +155,14 @@ jobs:
 
         - name: Create Azure Resource Group
           run: | 
-            az group create --name ${{ env.qaResourceGroup }} --location eastus
-            az role assignment create --assignee ${{ secrets.servicePrincipal }} --role owner --resource-group ${{ env.qaResourceGroup }}
+            az group create --name ${{ env.RESOURCEGROUP }} --location eastus
+            az role assignment create --assignee ${{ secrets.SERVICEPRINCIPAL }} --role owner --scope "/subscriptions/${{ secrets.AZURESUBID }}/resourcegroups/${{ env.RESOURCEGROUP }}
 
         - name: Provisioning Azure resources
           id: arm_deployment
           uses: azure/arm-deploy@v1
           with:
-            resourceGroupName: ${{ env.qaResourceGroup }}
+            resourceGroupName: ${{ env.RESOURCEGROUP }}
             template: IaC/cosmosdb.json
             parameters: IaC/cosmosdb.QA-parameters.json
             deploymentMode: 'Complete'
@@ -275,14 +275,14 @@ jobs:
 
         - name: Create Azure Resource Group
           run: |
-            az group create --name ${{ env.prodResourceGroup }} --location eastus
-            az role assignment create --assignee ${{ secrets.servicePrincipal }} --role owner --resource-group ${{ env.prodResourceGroup }}
+            az group create --name ${{ env.RESOURCEGROUP }} --location eastus
+            az role assignment create --assignee ${{ secrets.SERVICEPRINCIPAL }} --role owner --scope "/subscriptions/${{ secrets.AZURESUBID }}/resourcegroups/${{ env.RESOURCEGROUP }}
 
         - name: Provisioning Azure Cosmos DB resource with ARM
           id: arm_deployment
           uses: azure/arm-deploy@v1
           with:
-            resourceGroupName: ${{ env.prodResourceGroup }}
+            resourceGroupName: ${{ env.RESOURCEGROUP }}
             template: IaC/cosmosdb.json
             parameters: IaC/cosmosdb.Prod-parameters.json
             deploymentMode: 'Incremental'
