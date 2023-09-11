@@ -92,7 +92,7 @@
     },
     "webAppName": {
       "type": "string",
-      "value": "variables('webAppName')"
+      "value": "[variables('webAppName')]"
     }
   }
 }
