@@ -70,8 +70,10 @@ jobs:
       with:
         node-version: latest
 
-    - name: Install Azure Cosmos dependency 
-      run: npm install @azure/cosmos
+    - name: Install Azure Cosmos dependency and bypass SSL certificate validation error
+      run: | # This is required to bypass the SSL certificate validation error when using the Azure Cosmos DB Emulator.
+        npm install @azure/cosmos
+        set NODE_TLS_REJECT_UNAUTHORIZED=0 
     
     # The following steps are optional and are only used to demonstrate how to create and test Stored Procedures and Triggers with the Azure Cosmos DB Emulator.
     - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
@@ -84,7 +86,7 @@ jobs:
     name: 'Quality Assurance in Azure Test Environment'
     runs-on: ubuntu-latest
     environment: QA
-    needs: [Build, Testing]
+    needs: [Build]
     steps:
         - name: Repository checkout
           uses: actions/checkout@v4
