@@ -3,7 +3,7 @@ async function createTrigger(endpoint, key, databaseId, containerId, triggerFile
     const client = new CosmosClient({ endpoint, key});
     const { database } =  await client.databases.createIfNotExists({ id: databaseId });
     const { container } =  await database.containers.createIfNotExists({ id: containerId });
-    const { sampleTrigger } = await require('./Triggers/' + triggerFile);    
+    const { sampleTrigger } = await require('./' + triggerFile);    
     try {
         await container.scripts.triggers.create(sampleTrigger)              
     } catch (e) {
@@ -25,14 +25,11 @@ async function createTrigger(endpoint, key, databaseId, containerId, triggerFile
         } 
     }    
 }
-
 const [endpoint, key, databaseId, containerId, triggerFile, includeTest] = process.argv.slice(2);
-
 if (!endpoint || !key || !databaseId || !containerId || !triggerFile || !includeTest) {
     console.error('Please provide all the required parameters.');
     process.exit(1);
 }
-
 createTrigger(endpoint, key, databaseId, containerId, triggerFile, includeTest).catch((error) => {
     console.error(error);
     process.exit(1);

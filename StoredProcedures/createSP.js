@@ -3,7 +3,7 @@ async function createSP(endpoint, key, databaseId, containerId, storedProcedureF
     const client = new CosmosClient({ endpoint, key});
     const { database } =  await client.databases.createIfNotExists({ id: databaseId });
     const { container } =  await database.containers.createIfNotExists({ id: containerId });
-    const { sampleStoredProcedure } = await require('./StoredProcedures/'+storedProcedureFile);    
+    const { sampleStoredProcedure } = await require('./'+storedProcedureFile);    
     try {
         await container.scripts.storedProcedures.create(sampleStoredProcedure);            
     } catch (e) {
@@ -20,14 +20,11 @@ async function createSP(endpoint, key, databaseId, containerId, storedProcedureF
         }  
     }
 }
-
 const [endpoint, key, databaseId, containerId, storedProcedureFile, includeTest] = process.argv.slice(2);
-
 if (!endpoint || !key || !databaseId || !containerId || !storedProcedureFile || !includeTest) {
     console.error('Please provide all the required parameters.');
     process.exit(1);
 }
-
 createSP(endpoint, key, databaseId, containerId, storedProcedureFile, includeTest).catch((error) => {
     console.error(error);
     process.exit(1);
