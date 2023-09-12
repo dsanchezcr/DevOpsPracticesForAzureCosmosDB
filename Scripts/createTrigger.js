@@ -1,6 +1,11 @@
 async function createTrigger(endpoint, key, databaseId, containerId, triggerFile, includeTest) {       
     const { CosmosClient } = require("@azure/cosmos");
-    const client = new CosmosClient({ endpoint, key });
+    // Disable SSL verification for the Node.js process to allow self-signed certificates for Cosmos DB Emulator
+    const client = new CosmosClient({ endpoint, key, 
+        agent: new https.Agent({
+            rejectUnauthorized: false
+        })
+    });
     const { database } =  await client.databases.createIfNotExists({ id: databaseId });
     const { container } =  await database.containers.createIfNotExists({ id: containerId });
     const { sampleTrigger } = await require('./Triggers/' + triggerFile);    

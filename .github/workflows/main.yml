@@ -70,17 +70,17 @@ jobs:
       with:
         node-version: latest
 
-    - name: Install Azure Cosmos dependency and bypass SSL certificate validation error
-      run: | # This is required to bypass the SSL certificate validation error when using the Azure Cosmos DB Emulator.
+    - name: Install Azure Cosmos dependency and disable TLS certificate validation
+      run: | # Disable TLS certificate validation for the emulator
         npm install @azure/cosmos
-        set NODE_TLS_REJECT_UNAUTHORIZED=0 
+        set NODE_TLS_REJECT_UNAUTHORIZED=0
     
     # The following steps are optional and are only used to demonstrate how to create and test Stored Procedures and Triggers with the Azure Cosmos DB Emulator.
     - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
-      run: node Scripts/createSP.js https://localhost:8081 C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw== SampleDatabase WebAppContext StoredProcedures/SampleStoredProcedure.js 1
+      run: node Scripts/createSP.js https://localhost:8081 C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw== SampleDatabase WebAppContext SampleStoredProcedure.js 1
 
     - name: Create and test Trigger with Azure Cosmos DB Emulator
-      run: node Scripts/createTrigger.js https://localhost:8081 C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw== SampleDatabase WebAppContext Triggers/SampleTrigger.js 1
+      run: node Scripts/createTrigger.js https://localhost:8081 C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw== SampleDatabase WebAppContext SampleTrigger.js 1
 
   QA:
     name: 'Quality Assurance in Azure Test Environment'
@@ -123,11 +123,11 @@ jobs:
         - name: Install Azure Cosmos dependency 
           run: npm install @azure/cosmos
     
-        - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
-          run: node Scripts/createSP.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext StoredProcedures/SampleStoredProcedure.js 1
+        - name: Create and test Stored Procedure with Azure Cosmos DB
+          run: node Scripts/createSP.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext SampleStoredProcedure.js 1
       
-        - name: Create and test Trigger with Azure Cosmos DB Emulator
-          run: node Scripts/createTrigger.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext Triggers/SampleTrigger.js 1
+        - name: Create and test Trigger with Azure Cosmos DB
+          run: node Scripts/createTrigger.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext SampleTrigger.js 1
               
         - name: Download web app artifact
           uses: actions/download-artifact@v3
@@ -187,11 +187,11 @@ jobs:
         - name: Install Azure Cosmos dependency 
           run: npm install @azure/cosmos
       
-        - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
-          run: node Scripts/createSP.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext StoredProcedures/SampleStoredProcedure.js 0
+        - name: Create and test Stored Procedure with Azure Cosmos DB
+          run: node Scripts/createSP.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext SampleStoredProcedure.js 0
       
-        - name: Create and test Trigger with Azure Cosmos DB Emulator
-          run: node Scripts/createTrigger.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext Triggers/SampleTrigger.js 0
+        - name: Create and test Trigger with Azure Cosmos DB
+          run: node Scripts/createTrigger.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext SampleTrigger.js 0
           
         - name: Download web app artifact
           uses: actions/download-artifact@v3
