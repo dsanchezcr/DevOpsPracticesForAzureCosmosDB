@@ -70,12 +70,6 @@ jobs:
       with:
         node-version: latest
 
-    - name: Disable TLS certificate validation # Disable TLS certificate validation for the emulator
-      uses: actions/github-script@v6
-      with:
-        script: | 
-            process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
     - name: Install Azure Cosmos dependency
       run: npm install @azure/cosmos
     

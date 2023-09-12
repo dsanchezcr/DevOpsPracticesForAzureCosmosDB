@@ -1,4 +1,6 @@
-async function createTrigger(endpoint, key, databaseId, containerId, triggerFile, includeTest) {       
+async function createTrigger(endpoint, key, databaseId, containerId, triggerFile, includeTest) {
+    // Disable TLS certificate validation for the emulator
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";        
     const { CosmosClient } = require("@azure/cosmos");
     const client = new CosmosClient({ endpoint, key});
     const { database } =  await client.databases.createIfNotExists({ id: databaseId });
