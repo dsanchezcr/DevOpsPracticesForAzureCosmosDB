@@ -70,10 +70,14 @@ jobs:
       with:
         node-version: latest
 
-    - name: Install Azure Cosmos dependency and disable TLS certificate validation
-      run: | # Disable TLS certificate validation for the emulator
-        npm install @azure/cosmos
-        set NODE_TLS_REJECT_UNAUTHORIZED=0
+    - name: Disable TLS certificate validation # Disable TLS certificate validation for the emulator
+      uses: actions/github-script@v6
+      with:
+        script: | 
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+    - name: Install Azure Cosmos dependency
+      run: npm install @azure/cosmos
     
     # The following steps are optional and are only used to demonstrate how to create and test Stored Procedures and Triggers with the Azure Cosmos DB Emulator.
     - name: Create and test Stored Procedure with Azure Cosmos DB Emulator
