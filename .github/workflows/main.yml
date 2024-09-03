@@ -128,7 +128,7 @@ jobs:
           run: node Triggers/createTrigger.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext SampleTrigger.js 1
               
         - name: Download web app artifact
-          uses: actions/download-artifact@v3
+          uses: actions/download-artifact@v4.1.7
           with:
             name: SampleApp
             path: SampleApp
@@ -192,7 +192,7 @@ jobs:
           run: node Triggers/createTrigger.js ${{ steps.arm_deploy.outputs.cosmosDBendpoint }} ${{ env.cosmosDBKey }} SampleDatabase WebAppContext SampleTrigger.js 0
           
         - name: Download web app artifact
-          uses: actions/download-artifact@v3
+          uses: actions/download-artifact@v4.1.7
           with:
             name: SampleApp
             path: SampleApp
